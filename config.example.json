@@ -1,0 +1,110 @@
+{
+  "source_root": "examples/demo",
+  "priority_personas": [
+    "coordinator",
+    "equipment_steward",
+    "volunteer_host"
+  ],
+  "secondary_personas": [
+    "technical_advisor",
+    "occasional_member"
+  ],
+  "personas": {
+    "coordinator": {
+      "label": "Workshop Coordinator",
+      "path": "01-coordinator.md"
+    },
+    "equipment_steward": {
+      "label": "Equipment Steward",
+      "path": "02-equipment-steward.md"
+    },
+    "volunteer_host": {
+      "label": "Volunteer Host",
+      "path": "03-volunteer-host.md"
+    },
+    "technical_advisor": {
+      "label": "Technical Advisor",
+      "path": "04-technical-advisor.md"
+    },
+    "occasional_member": {
+      "label": "Occasional Member",
+      "path": "05-occasional-member.md"
+    }
+  },
+  "product_sources": [
+    {
+      "id": "product_brief",
+      "path": "product.md",
+      "kind": "fictional_product"
+    },
+    {
+      "id": "product_scope",
+      "path": "scope.md",
+      "kind": "fictional_scope"
+    }
+  ],
+  "history_sources": [
+    {
+      "id": "example_history",
+      "path": "history.md",
+      "kind": "fictional_history"
+    }
+  ],
+  "excluded_names": [
+    "LegacyPlaceholder"
+  ],
+  "include_previous_rejections": true,
+  "initial_candidate_count": 20,
+  "first_cut_count": 12,
+  "semifinal_count": 8,
+  "final_count": 5,
+  "max_debate_rounds": 3,
+  "minimum_strategy_count": 5,
+  "weights": {
+    "persona_resonance": 30,
+    "distinctiveness": 15,
+    "memorability": 10,
+    "emotional_fit": 10,
+    "credibility": 10,
+    "clarity": 10,
+    "pronunciation_spelling": 5,
+    "searchability": 5,
+    "extensibility": 5
+  },
+  "preference_emphasis": 0.4,
+  "risk_penalties": {
+    "None": 0,
+    "Low": 2,
+    "Moderate": 7,
+    "High": 18,
+    "Disqualifying": 100
+  },
+  "unknown_penalty_cap": 5,
+  "total_risk_cap": 35,
+  "tie_margin": 2,
+  "research_scope": {
+    "markets": [
+      "United States"
+    ],
+    "languages": [
+      "English"
+    ],
+    "domains": [
+      "com",
+      "net",
+      "ai",
+      "app",
+      "co"
+    ],
+    "categories": [
+      "community workshop scheduling",
+      "equipment booking",
+      "volunteer coordination"
+    ],
+    "notes": "Fictional demonstration category. Change markets, languages, and categories for your actual product. Missing results do not establish brand availability."
+  },
+  "codex_binary": "codex",
+  "model": "",
+  "agent_timeout_seconds": 1200,
+  "max_attempts": 2
+}

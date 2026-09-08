@@ -1,0 +1,16 @@
+# Local inputs and outputs never belong in the shared template.
+config.json
+config.local.json
+private/
+sources/
+inputs/
+data/
+runs/
+.env
+.env.*
+!.env.example
+.codex/
+__pycache__/
+*.pyc
+*.log
+.DS_Store
