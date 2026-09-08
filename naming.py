@@ -14,7 +14,7 @@ import sys
 import tempfile
 from urllib.parse import urlparse
 
-from contracts import (SCHEMAS, WEIGHTS, QUALITY, CATEGORIES, LEVELS, Invalid,
+from contracts import (SCHEMAS, WEIGHTS, QUALITY, CATEGORIES, LEVELS, Invalid, response_schema,
                        require, validate, exact_ids, normalized, score_candidate, rank)
 
 HERE = Path(__file__).resolve().parent
@@ -93,7 +93,9 @@ def refs_valid(refs, sources, allowed=None):
     require(refs, 'At least one source reference required')
     for ref in refs:
         sid = ref['source_id']
-        require(sid in sources and (allowed is None or sid in allowed), f'Invalid source reference: {sid}')
+        require(sid in sources, f'Unknown source ID: {sid}')
+        require(allowed is None or sid in allowed,
+                f'Source {sid} is not allowed in this field; allowed IDs: {sorted(allowed or [])}')
         require(ref['quote'] in sources[sid]['text'], f'Quote is not verbatim in {sid}')
 
 def same_sources(sources):
@@ -180,7 +182,9 @@ class Runner:
         path.mkdir(exist_ok=True)
         instruction = (HERE / 'prompts' / f'{role}.md').read_text()
         instruction = (HERE / 'prompts' / 'common.md').read_text() + '\n\n' + instruction
-        schema = SCHEMAS[schema_name or role]
+        schema = response_schema(schema_name or role, self.sources,
+                                 [s['id'] for s in self.cfg['product_sources']],
+                                 payload.get('persona_id') if role == 'persona' else None)
         request = dict(role=role, prompt=instruction, schema=schema, payload=payload, version=VERSION)
         fingerprint = digest(dump(request))
         cache = path / 'accepted.json'
@@ -207,6 +211,7 @@ class Runner:
                 return response
             except (Invalid, ValueError, subprocess.TimeoutExpired) as error:
                 errors.append(str(error))
+                print(f'{stage}: response rejected: {error}', flush=True)
                 write_json(path / f'failure-{attempt}.json', dict(error=str(error), recorded_at=now()))
         raise Invalid(f'{stage} failed after {len(errors)} attempts: {errors[-1]}')
 
@@ -377,6 +382,7 @@ class Runner:
             for h in answer['historical_names']:
                 refs_valid(h['source_refs'], self.sources)
         self.brief = self.ask('01-intake', 'intake', dict(sources=self.sources,
+                               product_source_ids=[s['id'] for s in cfg['product_sources']],
                                priority_personas=cfg['priority_personas'], secondary_personas=cfg['secondary_personas'],
                                excluded_names=cfg['excluded_names'], previous_rejections=self.previous_rejections), check_brief)
         def check_creation(answer):

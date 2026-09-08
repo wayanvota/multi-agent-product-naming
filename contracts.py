@@ -1,6 +1,7 @@
 """Strict response contracts and deterministic naming arithmetic (standard library only)."""
 import math
 import unicodedata
+import json
 
 WEIGHTS = dict(persona_resonance=30, distinctiveness=15, memorability=10,
                emotional_fit=10, credibility=10, clarity=10,
@@ -24,11 +25,12 @@ SCORE = dict(type='number', minimum=0, maximum=10)
 BOOL = dict(type='boolean')
 STRINGS = arr(S)
 REF = obj(source_id=S, quote=S)
+REFS = dict(type='array', items=REF, minItems=1)
 SCORES = obj(**{key: SCORE for key in QUALITY})
 CANDIDATE = obj(id=S, name=S, parent_id=TEXT, pronunciation=S,
                 strategy=enum('descriptive', 'suggestive', 'metaphorical', 'evocative',
                               'compound', 'invented', 'unexpected_familiar'),
-                rationale=S, customer_insight=S, source_refs=arr(REF), strengths=STRINGS,
+                rationale=S, customer_insight=S, source_refs=REFS, strengths=STRINGS,
                 weaknesses=STRINGS, preliminary_scores=obj(**{k: SCORE for k in WEIGHTS}))
 FINDING = obj(id=S, category=enum(*CATEGORIES), issue_key=S,
               severity=enum(*LEVELS), basis=enum('factual', 'subjective', 'unverified'),
@@ -39,7 +41,7 @@ REVIEW = obj(candidate_id=S, findings=arr(FINDING), checks=arr(CHECK),
              brand_space=S, recommendation=S)
 PERSONA_REVIEW = obj(candidate_id=S, score=SCORE, emotional_reaction=S, trust_reaction=S,
                      memorability=S, engagement=S, recommendation=S,
-                     choice=enum('preferred', 'acceptable', 'rejected'), source_refs=arr(REF),
+                     choice=enum('preferred', 'acceptable', 'rejected'), source_refs=REFS,
                      material_evidence_ids=STRINGS)
 JUDGMENT = obj(candidate_id=S, scores=SCORES, rationale=S, weakest_joint=S,
                upheld_finding_ids=STRINGS, dismissed_findings=arr(obj(finding_id=S, reason=S)),
@@ -47,11 +49,11 @@ JUDGMENT = obj(candidate_id=S, scores=SCORES, rationale=S, weakest_joint=S,
 SCHEMAS = {
     'intake': obj(product_purpose=S, value_proposition=S, product_status=S,
                   priority_personas=arr(obj(id=S, motivations=S, anxieties=S,
-                                            trust_triggers=S, source_refs=arr(REF))),
+                                            trust_triggers=S, source_refs=REFS)),
                   secondary_context=S, desired_characteristics=STRINGS,
                   competitive_context=S, constraints=STRINGS,
-                  historical_names=arr(obj(name=S, status=S, source_refs=arr(REF))),
-                  source_conflicts=STRINGS, product_refs=arr(REF)),
+                  historical_names=arr(obj(name=S, status=S, source_refs=REFS)),
+                  source_conflicts=STRINGS, product_refs=REFS),
     'creator': obj(candidates=arr(CANDIDATE), diversity_explanation=S),
     'adversary': obj(reviews=arr(REVIEW)),
     'cut': obj(advance=STRINGS, eliminate=arr(obj(candidate_id=S, reason=S)), rationale=S,
@@ -86,6 +88,7 @@ def validate(value, schema, path='$'):
         for key, subschema in schema['properties'].items():
             validate(value[key], subschema, f'{path}.{key}')
     elif kind == 'array':
+        require(len(value) >= schema.get('minItems', 0), f'{path}: at least {schema.get("minItems")} item(s) required')
         for i, item in enumerate(value):
             validate(item, schema['items'], f'{path}[{i}]')
     elif kind == 'number':
@@ -98,6 +101,25 @@ def validate(value, schema, path='$'):
 
 def normalized(name):
     return ''.join(c for c in unicodedata.normalize('NFKC', name).casefold() if c.isalnum())
+
+def response_schema(name, source_ids, product_ids, persona_id=None):
+    """Expose reference constraints to the model, not only to post-response validation."""
+    # JSON round-trip intentionally breaks shared schema-node aliases between fields.
+    schema = json.loads(json.dumps(SCHEMAS[name]))
+    def bind(node):
+        if isinstance(node, dict):
+            props = node.get('properties', {})
+            if 'source_id' in props and 'quote' in props:
+                props['source_id'] = enum(*([persona_id] if persona_id else sorted(source_ids)))
+            for value in node.values():
+                bind(value)
+        elif isinstance(node, list):
+            for value in node:
+                bind(value)
+    bind(schema)
+    if name == 'intake':
+        schema['properties']['product_refs']['items']['properties']['source_id'] = enum(*sorted(product_ids))
+    return schema
 
 def exact_ids(rows, ids, key='candidate_id'):
     got = [r[key] for r in rows]
