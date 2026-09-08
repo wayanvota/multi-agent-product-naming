@@ -92,7 +92,7 @@ New runs carry forward rejected names from completed runs in the same parent fol
 
 ## Evidence limits
 
-Source quotations must match the supplied text. External factual findings require a URL, excerpt, current date, and a recorded web-search tool event. Checked external categories need queries and supporting URLs. Failed lookups remain partial or unverified. A sparse result set, registered domain, failed page, or registry 404 does not establish legal usability or purchasability.
+Source quotations must match the supplied text. External factual findings require a URL, excerpt, current date, and a recorded web-search tool event. External coverage needs a recorded search query or direct URL lookup. A checked search without supporting source URLs is downgraded to partial, with the adjustment recorded. Failed lookups remain partial or unverified. A sparse result set, registered domain, failed page, or registry 404 does not establish legal usability or purchasability.
 
 These controls validate attribution and structure. They cannot prove that every source supports every model interpretation. Review the actual sources before committing to a name. Formal trademark review, linguistic checks, domain purchasing, and real customer preference and recall testing remain separate work.
 
@@ -109,3 +109,5 @@ Child sessions use a read-only sandbox, an isolated temporary working directory,
 - `VERIFICATION.md`: completed checks and unvalidated behavior.
 
 No real product profiles, business documents, candidate research, local account data, or naming-run artifacts are included.
+
+A resume can also revalidate a saved raw response from a previously failed stage when its complete request is unchanged. It must pass the current schema, evidence rules, and research-tool trace check before acceptance. The raw response and earlier failures remain intact; the accepted record identifies the recovered file and any conservative coverage downgrades.

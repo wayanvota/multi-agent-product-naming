@@ -28,6 +28,28 @@ def has_web_event(value):
         return any(has_web_event(v) for v in value.values())
     return isinstance(value, list) and any(has_web_event(v) for v in value)
 
+def validate_research_trace(value, trace):
+    observed = any(f['basis'] == 'factual' for r in value.get('reviews', []) for f in r.get('findings', []))
+    checked = any(c['category'] in EXTERNAL_CHECKS and c['status'] != 'unverified'
+                  for r in value.get('reviews', []) for c in r.get('checks', []))
+    require(not (observed or checked) or has_web_event(trace),
+            'External observations require a recorded web-search tool event')
+
+def normalize_research_coverage(value):
+    """Preserve search attempts with missing source links as partial, never clean coverage."""
+    value = json.loads(json.dumps(value))
+    adjustments = []
+    for review in value.get('reviews', []):
+        for coverage in review.get('checks', []):
+            if (coverage['category'] in EXTERNAL_CHECKS and coverage['status'] == 'checked'
+                    and coverage['queries'] and not coverage['urls']):
+                reason = 'Runner downgraded coverage to partial: no supporting source URL was recorded.'
+                adjustments.append(dict(candidate_id=review['candidate_id'], category=coverage['category'],
+                                        previous_status='checked', status='partial', reason=reason))
+                coverage['status'] = 'partial'
+                coverage['note'] += ' ' + reason
+    return value, adjustments
+
 def now():
     return datetime.now(timezone.utc).isoformat()
 
@@ -141,10 +163,7 @@ class CodexBackend:
         if role == 'adversary':
             # A claimed current observation without any web-tool event cannot be used as factual evidence.
             trace = [json.loads(line) for line in events.read_text().splitlines() if line.strip()]
-            observed = any(f['basis'] == 'factual' for r in value.get('reviews', []) for f in r.get('findings', []))
-            checked = any(c['category'] in EXTERNAL_CHECKS and c['status'] != 'unverified'
-                          for r in value.get('reviews', []) for c in r.get('checks', []))
-            require(not (observed or checked) or has_web_event(trace), 'External observations require a recorded web-search tool event')
+            validate_research_trace(value, trace)
         return value
 
 class Runner:
@@ -196,6 +215,32 @@ class Runner:
             if check:
                 check(response)
             return response
+        prior_request = path / 'request.json'
+        if prior_request.exists() and digest(dump(json.loads(prior_request.read_text()))) == fingerprint:
+            # A validator correction can make an unchanged raw response valid. Recheck it fully
+            # rather than repeating live research. Changed prompts or inputs never enter this path.
+            raw_answers = sorted(path.glob('answer-*.json'),
+                                 key=lambda p: int(p.stem.rsplit('-', 1)[1]), reverse=True)
+            for raw in raw_answers:
+                try:
+                    response = json.loads(raw.read_text())
+                    adjustments = []
+                    if role == 'adversary':
+                        response, adjustments = normalize_research_coverage(response)
+                    validate(response, schema)
+                    if role == 'adversary':
+                        attempt_number = raw.stem.rsplit('-', 1)[1]
+                        events = path / f'events-{attempt_number}.jsonl'
+                        trace = [json.loads(line) for line in events.read_text().splitlines() if line.strip()]
+                        validate_research_trace(response, trace)
+                    if check:
+                        check(response)
+                    write_json(cache, dict(request_hash=fingerprint, completed_at=now(),
+                                           recovered_from=raw.name, coverage_adjustments=adjustments, response=response))
+                    print(f'{stage}: saved response passed revalidation ({raw.name})', flush=True)
+                    return response
+                except (Invalid, ValueError, OSError):
+                    continue
         write_json(path / 'request.json', request)
         errors = []
         prior = [int(m.group(1)) for f in path.iterdir() if (m := re.search(r'-(\d+)\.', f.name))]
@@ -204,10 +249,13 @@ class Runner:
             print(f'{stage}: {role}, attempt {attempt}', flush=True)
             try:
                 response = self.backend(role, payload, schema, instruction + ('\nCorrect validation failure: ' + errors[-1] if errors else ''), path, attempt)
+                adjustments = []
+                if role == 'adversary':
+                    response, adjustments = normalize_research_coverage(response)
                 validate(response, schema)
                 if check:
                     check(response)
-                write_json(cache, dict(request_hash=fingerprint, completed_at=now(), response=response))
+                write_json(cache, dict(request_hash=fingerprint, completed_at=now(), coverage_adjustments=adjustments, response=response))
                 return response
             except (Invalid, ValueError, subprocess.TimeoutExpired) as error:
                 errors.append(str(error))
@@ -247,7 +295,8 @@ class Runner:
                 exact_ids(review['checks'], CATEGORIES, 'category')
                 for coverage in review['checks']:
                     if coverage['category'] in EXTERNAL_CHECKS and coverage['status'] != 'unverified':
-                        require(coverage['queries'], 'Claimed external research needs an actual query or lookup')
+                        require(coverage['queries'] or coverage['urls'],
+                                f"{review['candidate_id']} / {coverage['category']}: claimed external research needs a search query or direct URL lookup")
                     if coverage['category'] in EXTERNAL_CHECKS and coverage['status'] == 'checked':
                         require(coverage['urls'], 'Checked external research needs supporting URLs')
                     for url in coverage['urls']:
