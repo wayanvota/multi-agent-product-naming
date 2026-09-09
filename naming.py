@@ -288,7 +288,12 @@ class Runner:
         blocked.update(normalized(r['name']) for r in self.previous_rejections)
         for candidate in values:
             require(re.fullmatch(r'[A-Za-z0-9_-]{1,48}', candidate['id']), 'Invalid candidate ID')
-            require(candidate['id'] not in ids and normalized(candidate['name']) not in names, 'Duplicate candidate or reused name')
+            require(candidate['id'] not in ids,
+                    f"Duplicate candidate ID {candidate['id']!r} for {candidate['name']!r}. "
+                    'Use a fresh ID absent from every reserved ID and all other replacements.')
+            require(normalized(candidate['name']) not in names,
+                    f"Reused candidate name {candidate['name']!r} ({candidate['id']}). "
+                    'Choose a new name; eliminated candidates remain reserved.')
             require(normalized(candidate['name']) not in blocked, 'Explicitly excluded name regenerated')
             require(not candidate['parent_id'] or candidate['parent_id'] in self.candidates, 'Unknown parent candidate')
             refs_valid(candidate['source_refs'], self.sources)
@@ -351,6 +356,20 @@ class Runner:
         eligible_withdrawals = [i for i in ids if any(
             f['basis'] == 'factual' and f['severity'] in ('High', 'Disqualifying')
             for f in self.findings(i))]
+        if allow_replacements:
+            payload['replacement_policy'] = dict(
+                minimum_remaining_candidates=min(self.cfg['final_count'], len(ids)),
+                maximum_withdrawals=max(0, len(ids) - self.cfg['final_count']),
+                reserved_candidates=[dict(id=c['id'], name=c['name']) for c in self.candidates.values()],
+                excluded_names=list(dict.fromkeys(self.cfg['excluded_names'] +
+                                                  [r['name'] for r in self.previous_rejections])),
+                rule='Every replacement needs a fresh ID and name, absent from all reserved candidates '
+                     '(including eliminated names), the excluded names, and other replacements. '
+                     'Use a new replacement-specific ID such as replacement_01 if unused. '
+                     'Keep at least minimum_remaining_candidates after actions: defend, concede, and '
+                     'replace each retain one slot; withdraw removes one. Replace weak names when '
+                     'withdrawals would fall below the minimum. Cite only the supplied sources.')
+            payload['sources'] = self.sources
         if not allow_replacements:
             payload['withdrawal_policy'] = dict(
                 eligible_candidate_ids=eligible_withdrawals,
@@ -378,7 +397,9 @@ class Runner:
             self.check_candidates(replacements)
             remaining_count = sum(a['action'] != 'withdraw' for a in answer['actions'])
             require(remaining_count >= min(self.cfg['final_count'], len(ids)) or not allow_replacements,
-                    'Early withdrawals would prevent a full shortlist; replace weak candidates instead')
+                    f"Early withdrawals leave {remaining_count} candidates; at least "
+                    f"{min(self.cfg['final_count'], len(ids))} must remain. "
+                    'Replace weak candidates with fresh IDs and names instead of withdrawing them.')
         answer = self.ask(stage, 'response', payload, check)
         remaining, added = [], []
         for action in answer['actions']:
