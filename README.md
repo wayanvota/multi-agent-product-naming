@@ -1,10 +1,20 @@
 # Multi-agent product naming
 
-A naming workflow that separates idea generation, risk discovery, customer preference, and final judgment. It uses a Creator, an Adversary, three independent persona judges, and a Referee to produce an auditable shortlist of five names.
+A naming workflow that separates idea generation, risk discovery, customer preference, and final judgment. It uses a Creator, an Adversary, three independent persona judges, and a Referee to produce an auditable shortlist of up to five names by default.
 
 The point is to preserve strong preference and meaningful disagreement. A name two priority personas love and one distrusts can outperform a name all three merely tolerate. External conflicts are assessed separately from enthusiasm.
 
-**Experimental prototype.** Offline tests exercise the full workflow. A small live test verified Codex session startup and structured output. A complete live naming debate has not yet been validated. Persona reactions are simulated hypotheses, not customer research. Brand screening is preliminary, not trademark clearance.
+**Experimental prototype, updated September 9, 2026.** All 50 offline tests pass using synthetic evidence. They exercise workflow rules, failure handling, and recovery; they do not establish naming quality or live completion reliability. Persona reactions are simulated hypotheses, not customer research. Brand screening is preliminary, not trademark clearance. See [verification](VERIFICATION.md).
+
+Read the [1,000-word synopsis](SYNOPSIS.md) for who can benefit and what the tool delivers. The [changelog](CHANGELOG.md) records recent improvements.
+
+## Recent improvements
+
+- **Quotations tolerate line wrapping.** Whitespace differences no longer reject correctly copied text; changed wording, case, punctuation, and source attribution still fail validation.
+- **Withdrawal rules are explicit.** The Creator sees which candidates have the factual High or Disqualifying findings required for final withdrawal. Errors identify the candidate and required correction.
+- **Replacements see all reserved identities.** The Creator receives IDs and names for eliminated candidates as well as survivors, excluded names, source text, and the minimum survivor count. ID collisions and repeated names produce separate, specific errors.
+- **Research gaps remain visible.** Direct URL lookups count as research attempts. Searches without supporting source URLs are downgraded to partial coverage.
+- **Saved work can be recovered.** An unchanged failed request can reuse a saved response after it passes current validation. Changed retry inputs are archived, preserving the earlier request and raw response.
 
 ## How it works
 
@@ -92,7 +102,7 @@ New runs carry forward rejected names from completed runs in the same parent fol
 
 ## Evidence limits
 
-Source quotations must match the supplied text. External factual findings require a URL, excerpt, current date, and a recorded web-search tool event. External coverage needs a recorded search query or direct URL lookup. A checked search without supporting source URLs is downgraded to partial, with the adjustment recorded. Failed lookups remain partial or unverified. A sparse result set, registered domain, failed page, or registry 404 does not establish legal usability or purchasability.
+Source quotations must match the supplied wording, ignoring whitespace differences such as line wrapping. Case, punctuation, and word order remain significant; fuzzy matching is not used. External factual findings require a URL, excerpt, current date, and a recorded web-search tool event. External coverage needs a recorded search query or direct URL lookup. A checked search without supporting source URLs is downgraded to partial, with the adjustment recorded. Failed lookups remain partial or unverified. A sparse result set, registered domain, failed page, or registry 404 does not establish legal usability or purchasability.
 
 These controls validate attribution and structure. They cannot prove that every source supports every model interpretation. Review the actual sources before committing to a name. Formal trademark review, linguistic checks, domain purchasing, and real customer preference and recall testing remain separate work.
 
@@ -107,6 +117,8 @@ Child sessions use a read-only sandbox, an isolated temporary working directory,
 - `tests/`: offline contract and end-to-end tests with synthetic evidence.
 - `BUILD-SPEC.md`: the reusable product requirements.
 - `VERIFICATION.md`: completed checks and unvalidated behavior.
+- `SYNOPSIS.md`: a 1,000-word explanation of the tool, intended users, and benefits.
+- `CHANGELOG.md`: dated improvements and regression coverage.
 
 No real product profiles, business documents, candidate research, local account data, or naming-run artifacts are included.
 
