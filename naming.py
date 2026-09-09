@@ -241,6 +241,11 @@ class Runner:
                     return response
                 except (Invalid, ValueError, OSError):
                     continue
+        if prior_request.exists():
+            old_request = json.loads(prior_request.read_text())
+            old_hash = digest(dump(old_request))
+            if old_hash != fingerprint:
+                write_json(path / f'request-before-{old_hash}.json', old_request)
         write_json(path / 'request.json', request)
         errors = []
         prior = [int(m.group(1)) for f in path.iterdir() if (m := re.search(r'-(\d+)\.', f.name))]
@@ -337,6 +342,17 @@ class Runner:
     def response(self, stage, ids, allow_replacements):
         payload = dict(**self.context(), candidates=[self.candidates[i] for i in ids],
                        reviews={i: self.reviews[i] for i in ids}, allow_replacements=allow_replacements)
+        eligible_withdrawals = [i for i in ids if any(
+            f['basis'] == 'factual' and f['severity'] in ('High', 'Disqualifying')
+            for f in self.findings(i))]
+        if not allow_replacements:
+            payload['withdrawal_policy'] = dict(
+                eligible_candidate_ids=eligible_withdrawals,
+                rule="Withdraw only eligible_candidate_ids. Eligibility requires an existing finding "
+                     "with basis=factual and severity=High or Disqualifying. Moderate factual conflicts, "
+                     "subjective concerns, and unverified leads do not qualify, even in combination. "
+                     "For every other candidate choose defend or concede with an empty replacement array. "
+                     "Do not upgrade findings yourself; the Referee assesses remaining weaknesses.")
         def check(answer):
             exact_ids(answer['actions'], ids)
             replacements = []
@@ -348,9 +364,11 @@ class Runner:
                 else:
                     require(not action['replacement'], 'Only replace may introduce candidates')
                     if not allow_replacements and action['action'] == 'withdraw':
-                        require(any(f['basis'] == 'factual' and f['severity'] in ('High', 'Disqualifying')
-                                    for f in self.findings(action['candidate_id'])),
-                                'Final withdrawal needs a material factual risk; concede subjective weaknesses')
+                        cid = action['candidate_id']
+                        require(cid in eligible_withdrawals,
+                                f"Cannot withdraw {cid} ({self.candidates[cid]['name']}): no factual High or "
+                                f"Disqualifying finding. Choose defend or concede for this candidate. "
+                                f"Only these candidate IDs may withdraw: {eligible_withdrawals}.")
             self.check_candidates(replacements)
             remaining_count = sum(a['action'] != 'withdraw' for a in answer['actions'])
             require(remaining_count >= min(self.cfg['final_count'], len(ids)) or not allow_replacements,
