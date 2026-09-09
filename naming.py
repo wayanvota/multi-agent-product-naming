@@ -118,7 +118,13 @@ def refs_valid(refs, sources, allowed=None):
         require(sid in sources, f'Unknown source ID: {sid}')
         require(allowed is None or sid in allowed,
                 f'Source {sid} is not allowed in this field; allowed IDs: {sorted(allowed or [])}')
-        require(ref['quote'] in sources[sid]['text'], f'Quote is not verbatim in {sid}')
+        # Text wrapping is presentation, not a change in quoted wording. Keep case,
+        # punctuation, Markdown, and word order intact; do not use fuzzy matching.
+        quote = ' '.join(ref['quote'].split())
+        source_text = ' '.join(sources[sid]['text'].split())
+        require(quote and quote in source_text,
+                f'Quote wording not found in {sid}: {ref["quote"]!r}. '
+                'Copy a source passage exactly; only whitespace differences are ignored.')
 
 def same_sources(sources):
     for source in sources.values():
