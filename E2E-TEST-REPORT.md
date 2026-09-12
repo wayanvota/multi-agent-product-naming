@@ -36,8 +36,10 @@ services, or trademark services.
 
 ## Verification record
 
-Status: local verification passed on September 11, 2026. GitHub Actions
-verification is pending the branch push.
+Status: local and GitHub Actions verification passed on September 11, 2026.
+GitHub Actions run
+[`34665634645`](https://github.com/wayanvota/multi-agent-product-naming/actions/runs/34665634645)
+passed on Python 3.11 and 3.13, with a separate macOS launcher syntax job.
 
 ```bash
 python3 naming.py check
