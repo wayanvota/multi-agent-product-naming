@@ -1,10 +1,15 @@
 # Verification
 
-Verified September 9, 2026.
+Verified September 11, 2026.
 
 ## Offline checks
 
-All **50 tests pass** in the public repository. The suite exercises the full 20 → 12 → 8 → 5 workflow with synthetic candidates and evidence, plus replacement screening, persona independence, single revisions, repeated-risk deductions, Referee authority over disqualifications, fewer surviving finalists, source integrity, bounded failure, and cached resume.
+All **70 tests pass** in the public repository. The suite includes an explicit
+20-category end-to-end contract and exercises the full 20 → 12 → 8 → 5
+workflow with synthetic candidates and evidence, plus replacement screening,
+persona independence, single revisions, repeated-risk deductions, Referee
+authority over disqualifications, fewer surviving finalists, source integrity,
+bounded failure, and cached resume.
 
 Recent regressions cover:
 
