@@ -4,7 +4,7 @@ A naming workflow that separates idea generation, risk discovery, customer prefe
 
 The point is to preserve strong preference and meaningful disagreement. A name two priority personas love and one distrusts can outperform a name all three merely tolerate. External conflicts are assessed separately from enthusiasm.
 
-**Experimental prototype, updated September 9, 2026.** All 50 offline tests pass using synthetic evidence. They exercise workflow rules, failure handling, and recovery; they do not establish naming quality or live completion reliability. Persona reactions are simulated hypotheses, not customer research. Brand screening is preliminary, not trademark clearance. See [verification](VERIFICATION.md).
+**Experimental prototype, updated September 11, 2026.** All 70 offline tests pass using synthetic evidence, including an explicit 20-category end-to-end release contract. They exercise workflow rules, failure handling, and recovery; they do not establish naming quality or live completion reliability. Persona reactions are simulated hypotheses, not customer research. Brand screening is preliminary, not trademark clearance. See [verification](VERIFICATION.md) and the [E2E test report](E2E-TEST-REPORT.md).
 
 Read the [1,000-word synopsis](SYNOPSIS.md) for who can benefit and what the tool delivers. The [changelog](CHANGELOG.md) records recent improvements.
 

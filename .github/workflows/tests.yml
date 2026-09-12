@@ -1,4 +1,4 @@
-name: Offline tests
+name: End-to-end and offline tests
 on: [push, pull_request]
 permissions:
   contents: read
@@ -9,11 +9,19 @@ jobs:
       matrix:
         python-version: ['3.11', '3.13']
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
       - name: Validate example and run offline tests
         run: |
           python naming.py check
           python -m unittest discover -s tests -v
+          python -m py_compile naming.py contracts.py
+
+  launcher:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Validate the macOS launcher
+        run: zsh -n 'Run Naming.command'
