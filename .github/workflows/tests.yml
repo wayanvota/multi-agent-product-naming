@@ -18,4 +18,10 @@ jobs:
           python naming.py check
           python -m unittest discover -s tests -v
           python -m py_compile naming.py contracts.py
-          zsh -n 'Run Naming.command'
+
+  launcher:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Validate the macOS launcher
+        run: zsh -n 'Run Naming.command'
